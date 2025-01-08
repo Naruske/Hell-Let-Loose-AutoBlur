@@ -27,6 +27,7 @@ If you wish to reconfigure the script you can safely delete the obs_config.json.
     - `mss`
     - `Pillow`
 
+![Example](https://i.imgur.com/0DDzZ4B.png)
 
 ## Known issues
 - Issue with screen region coordinates if there is display scaling active on the monitor where OBS is displayed.
