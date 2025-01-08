@@ -25,7 +25,7 @@ If you wish to reconfigure the script you can safely delete the obs_config.json.
 
 - Python 3.7 or higher
 - OBS Studio with the OBS WebSocket plugin installed
-- An image source that perfectly covers the map or a filter (I use pixelate from Composite Blur for performance https://obsproject.com/forum/resources/composite-blur.1780/ [I use pixelate from Composite Blur for performance](https://obsproject.com/forum/resources/composite-blur.1780/))
+- An image source that perfectly covers the map or a filter ([I use pixelate from Composite Blur for performance](https://obsproject.com/forum/resources/composite-blur.1780/))
 - Required Python libraries (the script will attempt to download these manually):
     - `obsws_python`
     - `pyautogui`
