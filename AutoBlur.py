@@ -138,18 +138,18 @@ def main():
         if toggle_choice == "1":
             obs_config["toggle_type"] = "filter"
             obs_config["scene"] = input("Enter the scene name: ")
-            obs_config["source"] = input("Enter the source name within the scene: ")
+            obs_config["source"] = input("Enter the source name (Your Hell Let Loose game): ")
             obs_config["filter"] = input("Enter the filter name to toggle: ")
         elif toggle_choice == "2":
             obs_config["toggle_type"] = "visibility"
             obs_config["scene"] = input("Enter the scene name: ")
-            obs_config["source"] = input("Enter the source name within the scene: ")
+            obs_config["source"] = input("Enter the source name of the image you want to toggle on and off: ")
         else:
             print("Invalid choice. Exiting...")
             return
         
         # Ask for the color block region to monitor
-        input("Hover over the region you want to monitor and press Enter to capture color block...")
+        input("Place your mouse on the beige color of the welcome screen in the bottom right of your deploy screen and press Enter to capture color block.")
         x, y = pyautogui.position()
         captured_color = get_average_color(x, y)
         obs_config["coordinates"] = {"x": x, "y": y}
