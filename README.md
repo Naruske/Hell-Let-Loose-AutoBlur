@@ -1,6 +1,6 @@
 # Hell Let Loose AutoBlur Map on Death
 
-This script automatically applies a blur filter to the map in OBS when the player dies in the game *Hell Let Loose*, using the OBS WebSocket API. It monitors the player's screen for the appearance of a death screen (black screen) and then applies a blur effect or toggles the visibility of a source based on the user’s preference.
+This script automatically applies a blur filter to the map in OBS when the player dies in the game *Hell Let Loose*, using the OBS WebSocket API. It monitors the player's screen for the appearance of a death screen (black screen) and then applies a blur effect or toggles the visibility of a source based on the user’s preference to cover the map.
 
 Before running the script, make sure you have Python installed. If not, you can download it from [python.org](https://www.python.org/downloads/).
 
