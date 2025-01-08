@@ -4,6 +4,11 @@ This script automatically applies a blur filter to the map in OBS when the playe
 
 Before running the script, make sure you have Python installed. If not, you can download it from [python.org](https://www.python.org/downloads/).
 
+## How to run
+Place the .py somewhere (Like your desktop in a folder)
+Open a command prompt and navigate to the location (for ex., in CMD: cd c:\Users\Jan\Desktop\Autoblur)
+Run the script by typing autoblur.py
+
 ## How it works
 When the script starts it prompts you for the required OBS Websocket details and your preference of hiding the map (either by toggling an image source or a filter on your display or game capture).
 It will ask you to place your mouse on the beige colour that is present in the Welcome box on the Deploy screen.
