@@ -37,6 +37,7 @@ If you wish to reconfigure the script you can safely delete the obs_config.json.
 
 ## Known issues
 - Issue with screen region coordinates if there is display scaling active on the monitor where OBS is displayed.
+- Issue if you move the OBS window after the script is running. It won't check the correct region anymore.
 - No idea what the performance impact is
 - The script is literally made with ChatGPT so I have no idea if it's best practice
 - If you're changing your loadout for longer than 10 seconds it will return to scanning for black and thus not toggle the image source or filter
