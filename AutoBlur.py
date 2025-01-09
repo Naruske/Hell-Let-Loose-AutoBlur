@@ -178,12 +178,6 @@ def main():
 
             # Step 1: Check for black every 4 seconds if not already in captured color mode
             if not captured_color_detected and current_time - black_last_checked >= 4:
-                # Disable the filter or visibility before checking for black (if not already disabled)
-                if obs_config["toggle_type"] == "filter":
-                    toggle_filter(client, False, obs_config["scene"], obs_config["source"], obs_config["filter"])
-                elif obs_config["toggle_type"] == "visibility":
-                    toggle_source_visibility(client, obs_config["scene"], obs_config["source"], False)
-
                 current_color = get_average_color(x, y)
                 print(f"Checking for black... Current color: {current_color}")
 
@@ -216,8 +210,8 @@ def main():
                     # Start the timer to revert to black detection
                     if color_lost_time is None:
                         color_lost_time = current_time
-                    elif current_time - color_lost_time >= 10:
-                        print("Captured color not found for 10 seconds. Reverting to black detection.")
+                    elif current_time - color_lost_time >= 20:
+                        print("Captured color not found for 20 seconds. Reverting to black detection.")
                         captured_color_detected = False
 
                 time.sleep(0.1)
