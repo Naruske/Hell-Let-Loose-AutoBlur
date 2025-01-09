@@ -1,6 +1,6 @@
 # Hell Let Loose AutoBlur Map on Death
 
-This script automatically applies a blur filter to the map in OBS when the player dies in the game *Hell Let Loose*, using the OBS WebSocket API. It monitors the player's screen for the appearance of a death screen (black screen) and then applies a blur effect or toggles the visibility of a source based on the user’s preference.
+This script automatically applies a blur filter to the map in OBS when the player dies in the game *Hell Let Loose*, using the OBS WebSocket API. It monitors the player's screen for the appearance of a death screen (black screen) and then applies a blur effect or toggles the visibility of a source based on the user’s preference to cover the map.
 
 Before running the script, make sure you have Python installed. If not, you can download it from [python.org](https://www.python.org/downloads/).
 
@@ -25,7 +25,7 @@ If you wish to reconfigure the script you can safely delete the obs_config.json.
 
 - Python 3.7 or higher
 - OBS Studio with the OBS WebSocket plugin installed
-- An image source that perfectly covers the map or a filter (I use pixelate from Composite Blur for performance https://obsproject.com/forum/resources/composite-blur.1780/ )
+- An image source that perfectly covers the map or a filter ([I use pixelate from Composite Blur for performance](https://obsproject.com/forum/resources/composite-blur.1780/))
 - Required Python libraries (the script will attempt to download these manually):
     - `obsws_python`
     - `pyautogui`
@@ -37,6 +37,7 @@ If you wish to reconfigure the script you can safely delete the obs_config.json.
 
 ## Known issues
 - Issue with screen region coordinates if there is display scaling active on the monitor where OBS is displayed.
+- Issue if you move the OBS window after the script is running. It won't check the correct region anymore.
 - No idea what the performance impact is
 - The script is literally made with ChatGPT so I have no idea if it's best practice
 - If you're changing your loadout for longer than 10 seconds it will return to scanning for black and thus not toggle the image source or filter
