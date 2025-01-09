@@ -42,4 +42,4 @@ If you wish to reconfigure the script you can safely delete the obs_config.json.
 - The script is literally made with ChatGPT so I have no idea if it's best practice
 - If you're changing your loadout for longer than 10 seconds it will return to scanning for black and thus not toggle the image source or filter
   You can change the time it scans for the captured color by editing this line:
-                      elif current_time - color_lost_time >= **10**:
+                      elif current_time - color_lost_time >= **20**:
