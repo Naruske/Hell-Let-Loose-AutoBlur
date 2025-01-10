@@ -2,12 +2,13 @@
     "host": "10.18.1.74",
     "port": 4455,
     "password": "l5pTZLxZLntIm9eK",
-    "toggle_type": "visibility",
+    "toggle_type": "filter",
     "scene": "Scene",
-    "source": "Test",
+    "source": "Display",
+    "filter": "Blur",
     "coordinates": {
-        "x": -1210,
-        "y": 201
+        "x": -1226,
+        "y": 158
     },
     "color_block": {
         "color": [

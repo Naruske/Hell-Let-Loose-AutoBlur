@@ -1,5 +1,32 @@
 import subprocess
 import sys
+import json
+import time
+import pyautogui
+import numpy as np
+from mss import mss
+from PIL import Image
+from obsws_python import ReqClient
+from typing import Tuple, Dict, Any
+import logging
+
+# Constants
+CHECK_BLACK_INTERVAL = 4  # seconds
+CHECK_COLOR_INTERVAL = 0.1  # seconds
+COLOR_BLOCK_SIZE = 15  # pixels
+COLOR_TOLERANCE = 10
+REVERT_DELAY = 20  # seconds
+CONFIG_FILE = "obs_config.json"
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def install_libraries(libraries: list) -> None:
+    for library in libraries:
+        try:
+            __import__(library)
+        except ImportError:
+            logging.info(f"Installing {library}...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", library])
 
 # List of required libraries
 required_libraries = [
@@ -10,40 +37,19 @@ required_libraries = [
     'obsws-python',
 ]
 
-# Function to install missing libraries
-def install_libraries(libraries):
-    for library in libraries:
-        try:
-            __import__(library)
-        except ImportError:
-            print(f"Installing {library}...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", library])
-
-# Install required libraries if they are not already installed
 install_libraries(required_libraries)
 
-import json
-import time
-import pyautogui
-import numpy as np
-from mss import mss
-from PIL import Image
-from obsws_python import ReqClient
-
-CONFIG_FILE = "obs_config.json"
-
-# Function to load OBS configuration from JSON
-def load_obs_config(filename=CONFIG_FILE):
+def load_obs_config(filename: str = CONFIG_FILE) -> Dict[str, Any]:
+    """Load OBS configuration from JSON file."""
     try:
         with open(filename, 'r') as file:
             return json.load(file)
     except FileNotFoundError:
-        print("Configuration file not found, please enter settings.")
+        logging.warning("Configuration file not found, prompting user for settings.")
         return None
 
-# Function to save OBS configuration, including captured color block and coordinates, to JSON
-def save_obs_config(config, filename=CONFIG_FILE):
-    # Convert any numpy int64 to regular Python int
+def save_obs_config(config: Dict[str, Any], filename: str = CONFIG_FILE) -> None:
+    """Save OBS configuration to JSON file."""
     if "color_block" in config:
         config["color_block"]["color"] = tuple(int(c) for c in config["color_block"]["color"])
     
@@ -54,174 +60,147 @@ def save_obs_config(config, filename=CONFIG_FILE):
     with open(filename, 'w') as file:
         json.dump(config, file, indent=4)
 
-# Function to get average color of a block of pixels at a specific location
-def get_average_color(x, y, width=15, height=15):
+def get_average_color(x: int, y: int, width: int = COLOR_BLOCK_SIZE, height: int = COLOR_BLOCK_SIZE) -> Tuple[int, int, int]:
+    """Get average color of a block of pixels at a specific location."""
     with mss() as sct:
-        # Define the capture region for the 15x15 block
         monitor = {"top": y, "left": x, "width": width, "height": height}
         screenshot = sct.grab(monitor)
-
-        # Convert the screenshot to a PIL Image to access pixel data
         img = Image.frombytes('RGB', (width, height), screenshot.rgb)
-        
-        # Convert to numpy array to process the pixel data
         img_array = np.array(img)
-        
-        # Calculate the average color of the block (mean of all pixels)
-        avg_color = np.mean(img_array, axis=(0, 1)).astype(int)  # Average over the block's width and height
-        
+        avg_color = np.mean(img_array, axis=(0, 1)).astype(int)
     return tuple(avg_color)
 
-# Function to compare two colors with a tolerance for small variations
-def compare_colors(color1, color2, tolerance=10):
+def compare_colors(color1: Tuple[int, int, int], color2: Tuple[int, int, int], tolerance: int = COLOR_TOLERANCE) -> bool:
+    """Compare two colors with a tolerance for small variations."""
     diff = np.abs(np.array(color1) - np.array(color2))
     return np.all(diff <= tolerance)
 
-# Function to toggle filter based on color change
-def toggle_filter(client, enable, scene_name, source_name, filter_name):
+def toggle_filter(client: ReqClient, enable: bool, scene_name: str, source_name: str, filter_name: str) -> None:
     """Enable or disable the filter based on the captured color."""
     try:
         filter_response = client.get_source_filter(source_name, filter_name)
-
-        # Check the current filter state
         current_state = filter_response.filter_enabled
-        if current_state == enable:
-            print(f"Filter is already {'enabled' if enable else 'disabled'}.")
-            return
-
-        # Toggle the filter state
-        client.set_source_filter_enabled(source_name, filter_name, enable)
-        print(f"Filter {'enabled' if enable else 'disabled'}.")
+        if current_state != enable:
+            client.set_source_filter_enabled(source_name, filter_name, enable)
+            logging.info(f"Filter {'enabled' if enable else 'disabled'}.")
+        else:
+            logging.info(f"Filter is already {'enabled' if enable else 'disabled'}.")
     except Exception as e:
-        print(f"Error toggling filter: {e}")
+        logging.error(f"Error toggling filter: {e}")
 
-# Function to toggle source visibility
-def toggle_source_visibility(client, scene_name, source_name, enable):
+def toggle_source_visibility(client: ReqClient, scene_name: str, source_name: str, enable: bool) -> None:
     """Toggle the visibility of the source based on the enable flag."""
     try:
-        # Get the scene item ID for the source
         response = client.get_scene_item_id(scene_name, source_name)
-
-        # Access the correct attribute 'scene_item_id' (not 'sceneItemId')
         scene_item_id = response.scene_item_id
-
-        # Get the current visibility state
         visibility_response = client.get_scene_item_enabled(scene_name, scene_item_id)
-
-        # Access the correct attribute for visibility
         current_visibility = visibility_response.scene_item_enabled
 
-        # Only toggle if the current state is different from the desired state
         if current_visibility != enable:
             client.set_scene_item_enabled(scene_name, scene_item_id, enable)
-            print(f"Source '{source_name}' visibility toggled to {'visible' if enable else 'hidden'}.")
+            logging.info(f"Source '{source_name}' visibility toggled to {'visible' if enable else 'hidden'}.")
         else:
-            print(f"Source '{source_name}' is already in the desired visibility state.")
-
+            logging.info(f"Source '{source_name}' is already in the desired visibility state.")
     except Exception as e:
-        print(f"Error toggling source visibility: {e}")
+        logging.error(f"Error toggling source visibility: {e}")
 
-def main():
-    # Load OBS configuration or prompt user for input
-    obs_config = load_obs_config()
-    if not obs_config:
-        # Prompt for OBS WebSocket settings
-        obs_config = {
-            "host": input("Enter OBS WebSocket Host: "),
-            "port": int(input("Enter OBS WebSocket Port: ")),
-            "password": input("Enter OBS WebSocket Password: "),
-        }
-        
-        # Ask user whether they want to toggle a filter or visibility
-        toggle_choice = input("Choose (1) Filter or (2) Source Visibility: ")
-        
-        if toggle_choice == "1":
-            obs_config["toggle_type"] = "filter"
-            obs_config["scene"] = input("Enter the scene name: ")
-            obs_config["source"] = input("Enter the source name (Your Hell Let Loose game): ")
-            obs_config["filter"] = input("Enter the filter name to toggle: ")
-        elif toggle_choice == "2":
-            obs_config["toggle_type"] = "visibility"
-            obs_config["scene"] = input("Enter the scene name: ")
-            obs_config["source"] = input("Enter the source name of the image you want to toggle on and off: ")
-        else:
-            print("Invalid choice. Exiting...")
-            return
-        
-        # Ask for the color block region to monitor
-        input("Place your mouse on the beige color of the welcome screen in the bottom right of your deploy screen and press Enter to capture color block.")
-        x, y = pyautogui.position()
-        captured_color = get_average_color(x, y)
-        obs_config["coordinates"] = {"x": x, "y": y}
-        obs_config["color_block"] = {"color": captured_color, "width": 15, "height": 15}
-        save_obs_config(obs_config)  # Save the updated configuration
-        print(f"Captured color block at ({x}, {y}): {captured_color}")
+def setup_config() -> Dict[str, Any]:
+    """Set up OBS configuration interactively if not available."""
+    config = {
+        "host": input("Enter OBS WebSocket Host: "),
+        "port": int(input("Enter OBS WebSocket Port: ")),
+        "password": input("Enter OBS WebSocket Password: "),
+    }
+    
+    toggle_choice = input("Choose (1) Filter or (2) Source Visibility: ")
+    if toggle_choice == "1":
+        config["toggle_type"] = "filter"
+        config["scene"] = input("Enter the scene name: ")
+        config["source"] = input("Enter the source name (Your Hell Let Loose game): ")
+        config["filter"] = input("Enter the filter name to toggle: ")
+    elif toggle_choice == "2":
+        config["toggle_type"] = "visibility"
+        config["scene"] = input("Enter the scene name: ")
+        config["source"] = input("Enter the source name of the image you want to toggle on and off: ")
     else:
-        # Load previously saved settings
-        x = obs_config["coordinates"]["x"]
-        y = obs_config["coordinates"]["y"]
-        captured_color = tuple(obs_config["color_block"]["color"])
-        print(f"Using saved color block at ({x}, {y}): {captured_color}")
+        logging.error("Invalid choice. Exiting...")
+        sys.exit(1)
+    
+    input("Place your mouse on the beige color of the welcome screen in the bottom right of your deploy screen and press Enter to capture color block.")
+    x, y = pyautogui.position()
+    captured_color = get_average_color(x, y)
+    config["coordinates"] = {"x": x, "y": y}
+    config["color_block"] = {"color": captured_color, "width": COLOR_BLOCK_SIZE, "height": COLOR_BLOCK_SIZE}
+    save_obs_config(config)
+    logging.info(f"Captured color block at ({x}, {y}): {captured_color}")
+    return config
 
-    # Color to search for (black screen)
+def monitor_color(client: ReqClient, config: Dict[str, Any]) -> None:
+    """Monitor screen color changes and react accordingly."""
+    x, y = config["coordinates"]["x"], config["coordinates"]["y"]
+    captured_color = tuple(config["color_block"]["color"])
     black_color = (0, 0, 0)
     captured_color_detected = False
     black_last_checked = time.time()
     color_lost_time = None
 
-    # Initialize the ReqClient with the WebSocket configuration
-    client = ReqClient(host=obs_config["host"], port=obs_config["port"], password=obs_config["password"])
-
     try:
         while True:
             current_time = time.time()
 
-            # Step 1: Check for black every 4 seconds if not already in captured color mode
-            if not captured_color_detected and current_time - black_last_checked >= 4:
-                current_color = get_average_color(x, y)
-                print(f"Checking for black... Current color: {current_color}")
+            if not captured_color_detected:
+                if current_time - black_last_checked >= CHECK_BLACK_INTERVAL:
+                    current_color = get_average_color(x, y)
+                    logging.info(f"Checking for black... Current color: {current_color}")
+                    if compare_colors(current_color, black_color):
+                        logging.info("Black screen detected! Switching to captured color monitoring...")
+                        captured_color_detected = True
+                    black_last_checked = current_time
 
-                if compare_colors(current_color, black_color):
-                    print("Black screen detected! Switching to captured color monitoring...")
-                    captured_color_detected = True
-                black_last_checked = current_time
+                time.sleep(CHECK_COLOR_INTERVAL)
+                continue
 
-            # Step 2: If black is detected, check for the captured color every 0.1 seconds
             if captured_color_detected:
                 current_color = get_average_color(x, y)
-                print(f"Checking for captured color... Current color: {current_color}")
-
+                logging.info(f"Checking for captured color... Current color: {current_color}")
                 if compare_colors(current_color, captured_color):
-                    # Captured color is still present
-                    print("Captured color detected.")
+                    # Reset color_lost_time when color is detected again
                     color_lost_time = None
-                    if obs_config["toggle_type"] == "filter":
-                        toggle_filter(client, True, obs_config["scene"], obs_config["source"], obs_config["filter"])
-                    elif obs_config["toggle_type"] == "visibility":
-                        toggle_source_visibility(client, obs_config["scene"], obs_config["source"], True)
+                    if config["toggle_type"] == "filter":
+                        toggle_filter(client, True, config["scene"], config["source"], config["filter"])
+                    elif config["toggle_type"] == "visibility":
+                        toggle_source_visibility(client, config["scene"], config["source"], True)
                 else:
-                    # Captured color is no longer present; disable the filter or visibility immediately
-                    print("Captured color no longer found! Disabling...")
-                    if obs_config["toggle_type"] == "filter":
-                        toggle_filter(client, False, obs_config["scene"], obs_config["source"], obs_config["filter"])
-                    elif obs_config["toggle_type"] == "visibility":
-                        toggle_source_visibility(client, obs_config["scene"], obs_config["source"], False)
-
-                    # Start the timer to revert to black detection
                     if color_lost_time is None:
-                        color_lost_time = current_time
-                    elif current_time - color_lost_time >= 20:
-                        print("Captured color not found for 20 seconds. Reverting to black detection.")
-                        captured_color_detected = False
+                        logging.info("Captured color no longer found! Disabling...")
+                        if config["toggle_type"] == "filter":
+                            toggle_filter(client, False, config["scene"], config["source"], config["filter"])
+                        elif config["toggle_type"] == "visibility":
+                            toggle_source_visibility(client, config["scene"], config["source"], False)
+                        
+                        color_lost_time = current_time  # Start or restart the 20-second countdown
+                    else:
+                        if current_time - color_lost_time >= REVERT_DELAY:
+                            logging.info("Captured color not found for 20 seconds. Reverting to black detection.")
+                            captured_color_detected = False
+                            # Reset black_last_checked to ensure immediate check for black next cycle
+                            black_last_checked = current_time
+                            color_lost_time = None  # Reset for next cycle if black is detected again
 
-                time.sleep(0.1)
-
-            else:
-                # Sleep briefly to avoid busy-waiting
-                time.sleep(0.1)
+                time.sleep(CHECK_COLOR_INTERVAL)
 
     except KeyboardInterrupt:
-        print("Exiting...")
+        logging.info("Exiting...")
+
+def main():
+    obs_config = load_obs_config()
+    if not obs_config:
+        obs_config = setup_config()
+    else:
+        logging.info(f"Using saved color block at ({obs_config['coordinates']['x']}, {obs_config['coordinates']['y']}): {tuple(obs_config['color_block']['color'])}")
+
+    client = ReqClient(host=obs_config["host"], port=obs_config["port"], password=obs_config["password"])
+    monitor_color(client, obs_config)
 
 if __name__ == "__main__":
     main()
