@@ -145,9 +145,6 @@ def setup_config() -> Dict[str, Any]:
         print("Invalid port number")
     
     config["password"] = input("OBS WebSocket Password: ")
-    print("\nWARNING: Password will be stored in plain text")
-    if input("Continue? (y/n): ").lower() != 'y':
-        sys.exit(0)
     
     print("\nChoose element to toggle:")
     choice = input("1. Filter\n2. Source Visibility\nChoice: ")
